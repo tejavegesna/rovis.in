@@ -82,31 +82,3 @@ jobs:
               repo: context.repo.repo,
               body: comment
             });
-EOF
-
-echo "✅ Created .github/workflows/deploy.yml"
-echo ""
-echo "🔑 Next steps:"
-echo "1. Add these secrets to your GitHub repository:"
-echo "   Settings → Secrets and variables → Actions"
-echo ""
-echo "   CLOUDFLARE_API_TOKEN"
-echo "   └── Get from: https://dash.cloudflare.com/profile/api-tokens"
-echo "   └── Permissions: Zone:Zone:Read, Account:Cloudflare Pages:Edit"
-echo ""
-echo "   CLOUDFLARE_ACCOUNT_ID"
-echo "   └── Get from: Cloudflare Dashboard (right sidebar)"
-echo ""
-echo "2. Commit and push:"
-echo "   git add .github/"
-echo "   git commit -m 'Add deployment workflow'"
-echo "   git push origin main"
-echo ""
-echo "🌐 Deployment URLs will be:"
-echo "   Production: https://rovis-technologies.pages.dev"
-echo "   PR Preview: https://rovis-pr-{number}.pages.dev"
-echo "   Branch: https://rovis-{branch-name}.pages.dev"
-echo ""
-echo "🎉 Done! Your next push will trigger a deployment."
-
----
