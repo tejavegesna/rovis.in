@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -16,17 +16,16 @@ jobs:
       pull-requests: write
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build project
         run: npm run build
@@ -42,10 +41,10 @@ jobs:
             DEPLOYMENT_NAME="rovis-${{ github.ref_name }}"
           fi
           echo "name=$DEPLOYMENT_NAME" >> $GITHUB_OUTPUT
-          echo "### 🚀 Deployment Name: \`$DEPLOYMENT_NAME\`" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Deployment: $DEPLOYMENT_NAME" >> $GITHUB_STEP_SUMMARY
 
       - name: Deploy to Cloudflare Pages
-        id: cloudflare-deploy
+        id: deploy
         uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -54,57 +53,32 @@ jobs:
           directory: out
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Add deployment summary
+      - name: Add deployment info
         run: |
-          echo "## 🎉 Deployment Successful!" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**🔗 Live URL:** ${{ steps.cloudflare-deploy.outputs.url }}" >> $GITHUB_STEP_SUMMARY
-          echo "**📝 Deployment ID:** ${{ steps.cloudflare-deploy.outputs.id }}" >> $GITHUB_STEP_SUMMARY
-          echo "**🌍 Environment:** ${{ steps.cloudflare-deploy.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📋 Deployment Details" >> $GITHUB_STEP_SUMMARY
-          echo "- **Project:** ${{ steps.deployment-name.outputs.name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Triggered by:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Deployment Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "**🔗 URL:** ${{ steps.deploy.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**📝 Project:** ${{ steps.deployment-name.outputs.name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**🌿 Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Comment on PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
-            const deploymentUrl = '${{ steps.cloudflare-deploy.outputs.url }}';
-            const deploymentName = '${{ steps.deployment-name.outputs.name }}';
-
-            const comment = `## 🚀 Preview Deployment Ready!
-
-            **🔗 Preview URL:** ${deploymentUrl}
-            **📝 Deployment:** \`${deploymentName}\`
-
-            ### 🔍 What to test:
-            - [ ] Mobile responsiveness
-            - [ ] Contact form functionality
-            - [ ] Navigation links
-            - [ ] Service sections
-            - [ ] Performance (should load < 3s)
-
+            const url = '${{ steps.deploy.outputs.url }}';
+            const name = '${{ steps.deployment-name.outputs.name }}';
+            
+            const comment = `## 🚀 Preview Ready!
+            
+            **🔗 Preview URL:** ${url}
+            **📝 Deployment:** \`${name}\`
+            
             ---
-            *Deployed from commit ${{ github.sha }}*`;
-
+            *Updated from commit ${{ github.sha }}*`;
+            
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: comment
             });
-
-  cleanup-old-deployments:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
-    steps:
-      - name: Cleanup PR deployment
-        run: |
-          echo "🧹 Cleaning up deployment for closed PR #${{ github.event.number }}"
-          echo "Deployment name: rovis-pr-${{ github.event.number }}"
-          # Note: Cloudflare Pages automatically manages cleanup,
-          # but you can add custom cleanup logic here if needed
